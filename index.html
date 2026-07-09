@@ -192,12 +192,22 @@ function renderList() {
   list.querySelectorAll("[data-mark-sent]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const t = tracked.find(t => t.id === btn.dataset.markSent);
-      const newNextDue = addDays(today(), t.cadenceWeeks * 7);
-      await updateDoc(doc(db, "trackedOrders", t.id), {
-        lastSent: today(),
-        nextDue: newNextDue,
-        history: arrayUnion({ sentOn: today(), qty: t.qty }),
-      });
+      if (!t) { console.error("Could not find tracked order for id", btn.dataset.markSent); return; }
+      btn.disabled = true;
+      btn.textContent = "Saving\u2026";
+      try {
+        const newNextDue = addDays(today(), t.cadenceWeeks * 7);
+        await updateDoc(doc(db, "trackedOrders", t.id), {
+          lastSent: today(),
+          nextDue: newNextDue,
+          history: arrayUnion({ sentOn: today(), qty: t.qty }),
+        });
+      } catch (err) {
+        console.error("Mark-sent failed:", err);
+        alert("Couldn't save: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "Mark sent today";
+      }
     });
   });
 }
