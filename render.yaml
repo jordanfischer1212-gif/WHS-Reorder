@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: parlevel
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    disk:
+      name: parlevel-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: ANTERA_BASE_URL
+        sync: false
+      - key: ANTERA_API_KEY
+        sync: false
