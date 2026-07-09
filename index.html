@@ -136,10 +136,16 @@ async function ensureProductsSeeded() {
   }
 }
 
+function syncNewAccountVisibility() {
+  const val = document.getElementById("f-account").value;
+  document.getElementById("new-account-wrap").style.display = val === "__new__" ? "block" : "none";
+}
+
 function populateAccountSelect() {
   const sel = document.getElementById("f-account");
   sel.innerHTML = accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join("") +
     `<option value="__new__">+ Add new account&hellip;</option>`;
+  syncNewAccountVisibility();
 }
 function populateProductSelect() {
   const sel = document.getElementById("f-product");
@@ -198,9 +204,7 @@ function renderList() {
 
 document.getElementById("f-last-sent").valueAsDate = new Date();
 
-document.getElementById("f-account").addEventListener("change", (e) => {
-  document.getElementById("new-account-wrap").style.display = e.target.value === "__new__" ? "block" : "none";
-});
+document.getElementById("f-account").addEventListener("change", syncNewAccountVisibility);
 document.getElementById("f-product").addEventListener("change", populateCadenceSelect);
 
 document.getElementById("f-submit").addEventListener("click", async () => {
