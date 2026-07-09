@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>WHS Reorder Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" href="data:,">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
   :root {
@@ -24,6 +25,7 @@
   .field label { display:block; font-size:12px; color:var(--slate); margin-bottom:5px; }
   .field select, .field input { width:100%; font-size:14px; padding:8px 10px; border-radius:7px; border:1px solid var(--hairline); background:var(--ivory); color:var(--navy); }
   .submit-btn { margin-top:16px; font-size:13px; font-weight:600; padding:10px 18px; border-radius:8px; border:none; background:var(--brass); color:var(--navy); cursor:pointer; }
+  .submit-btn:disabled { background:var(--hairline); color:var(--slate); cursor:not-allowed; }
   .error-msg { color:var(--rust); font-size:13px; margin-top:8px; display:none; }
   .section-label { font-size:12px; color:var(--slate); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
   .row-card { background:var(--card); border:1px solid var(--hairline); border-radius:12px; padding:14px 18px; margin-bottom:10px; }
@@ -71,7 +73,7 @@
         <input id="f-last-sent" type="date" />
       </div>
     </div>
-    <button class="submit-btn" id="f-submit">Add to tracker</button>
+    <button class="submit-btn" id="f-submit" disabled>Loading data&hellip;</button>
     <p class="error-msg" id="f-error"></p>
   </div>
 
@@ -143,6 +145,11 @@ function populateProductSelect() {
   const sel = document.getElementById("f-product");
   sel.innerHTML = products.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
   populateCadenceSelect();
+  const submitBtn = document.getElementById("f-submit");
+  if (products.length > 0) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Add to tracker";
+  }
 }
 function populateCadenceSelect() {
   const productId = document.getElementById("f-product").value;
@@ -217,6 +224,11 @@ document.getElementById("f-submit").addEventListener("click", async () => {
 
   const productId = document.getElementById("f-product").value;
   const product = products.find(p => p.id === productId);
+  if (!product) {
+    errorEl.textContent = "Still loading products — wait a second and try again.";
+    errorEl.style.display = "block";
+    return;
+  }
   const qty = Number(document.getElementById("f-qty").value);
   const cadenceWeeks = Number(document.getElementById("f-cadence").value);
   const lastSent = document.getElementById("f-last-sent").value || today();
@@ -244,22 +256,33 @@ document.getElementById("f-submit").addEventListener("click", async () => {
 
 // --- live sync: everyone who has this page open sees the same data ---
 async function init() {
-  await ensureProductsSeeded();
+  try {
+    await ensureProductsSeeded();
+  } catch (err) {
+    document.getElementById("tracked-list").innerHTML =
+      `<p class="empty" style="color:var(--rust);">Couldn't connect to Firebase: ${err.message}</p>`;
+    return;
+  }
+
+  const onError = (err) => {
+    document.getElementById("tracked-list").innerHTML =
+      `<p class="empty" style="color:var(--rust);">Connection error: ${err.message}</p>`;
+  };
 
   onSnapshot(collection(db, "products"), (snap) => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     populateProductSelect();
-  });
+  }, onError);
 
   onSnapshot(collection(db, "accounts"), (snap) => {
     accounts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     populateAccountSelect();
-  });
+  }, onError);
 
   onSnapshot(collection(db, "trackedOrders"), (snap) => {
     tracked = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderList();
-  });
+  }, onError);
 }
 
 init();
