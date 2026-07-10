@@ -38,12 +38,50 @@
   .mark-btn { font-size:12.5px; font-weight:500; padding:6px 12px; border-radius:7px; border:1px solid var(--teal); color:var(--teal); background:none; cursor:pointer; }
   .empty { color:var(--slate); font-size:14px; }
   .sync-note { font-size:11.5px; color:var(--slate); margin-top:30px; text-align:center; }
+
+  .help-card { background:var(--card); border:1px solid var(--hairline); border-radius:12px; margin-bottom:20px; overflow:hidden; }
+  .help-card summary { padding:14px 20px; font-size:14px; font-weight:600; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; }
+  .help-card summary::-webkit-details-marker { display:none; }
+  .help-card summary::after { content:"+"; font-size:18px; color:var(--slate); font-weight:400; }
+  .help-card[open] summary::after { content:"\2212"; }
+  .help-card .help-body { padding:0 20px 18px; font-size:13.5px; color:var(--slate); line-height:1.7; }
+  .help-card .help-body h3 { font-size:13px; color:var(--navy); margin:14px 0 4px; font-family:'Inter',sans-serif; font-weight:600; }
+  .help-card .help-body ul { margin:4px 0; padding-left:18px; }
+  .help-card .help-body .contact { background:var(--ivory); border-radius:8px; padding:10px 14px; margin-top:14px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><span class="mark">P</span> WHS Reorder Tracker</div>
+  <div class="brand">
+    <img src="https://westernhotelsupply.com/cdn/shop/files/0045240_Western_2024_Logo_Horizontal_-_Edited.png?v=1777060143&width=480" alt="Western Hotel Supply" style="height:32px;width:auto;" />
+    <span style="font-size:15px;color:var(--slate);font-weight:500;">Reorder Tracker</span>
+  </div>
   <p class="lede">Log an order when it goes out. This tracks quantity and cadence and tells you when the next one is due. Synced live with Firebase &mdash; anyone on this page sees the same data.</p>
+
+  <details class="help-card">
+    <summary>Need help? Click here for instructions</summary>
+    <div class="help-body">
+      <h3>Adding a new order</h3>
+      <p>Pick the hotel account (or choose "+ Add new account" if it's not listed yet), the product, quantity, and how often it should be reordered. If you're adding a new account, include a reminder email &mdash; that's who gets notified 3 days before each order is due.</p>
+
+      <h3>Marking an order sent</h3>
+      <p>Once you've actually placed/shipped an order, click <strong>Mark sent today</strong> on that row. This logs it and automatically moves the next due date forward based on that product's reorder cadence.</p>
+
+      <h3>Pause and Cancel</h3>
+      <ul>
+        <li><strong>Pause</strong> stops reminders for that order without losing its settings &mdash; use this for a temporary hold. A <strong>Resume</strong> button brings it back.</li>
+        <li><strong>Cancel</strong> removes it from the active list entirely. You'll be asked to confirm first, since it's harder to undo.</li>
+      </ul>
+
+      <h3>Email reminders</h3>
+      <p>Each account's contact automatically gets an email 3 days before their next order is due. That email includes <strong>Pause this order</strong> and <strong>Cancel this order</strong> links &mdash; if a customer clicks one, it opens a pre-filled email to customer service so we can make the change here manually. Nothing pauses or cancels itself automatically.</p>
+
+      <div class="contact">
+        <strong>Questions or something looks wrong?</strong><br />
+        Contact Jordan Fischer &mdash; <a href="mailto:Jordan@corporateimagegroup.com">Jordan@corporateimagegroup.com</a>
+      </div>
+    </div>
+  </details>
 
   <div class="form-card">
     <h2>Log a new order</h2>
