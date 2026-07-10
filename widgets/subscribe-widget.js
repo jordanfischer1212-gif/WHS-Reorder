@@ -1,4 +1,3 @@
-
 // WHS Auto-Reorder Request Widget — hosted version
 // ---------------------------------------------------
 // This file is loaded via a <script src="..."> tag from the product
@@ -27,15 +26,21 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Pull the product name out of this very script tag's own src URL.
-const scriptUrl = new URL(document.currentScript.src);
+// Pull the product name out of this very script's own URL.
+// (Using import.meta.url here, not document.currentScript — the latter
+// returns null for type="module" scripts in modern browsers, which was
+// silently breaking everything below it.)
+const scriptUrl = new URL(import.meta.url);
 const PRODUCT_NAME = scriptUrl.searchParams.get("product") || "Unknown product";
 
 // Build the widget markup with JS rather than relying on separate
 // static HTML surviving in the page — keeps everything pasted into
 // Aether down to just the empty target div plus this one script tag.
 const root = document.getElementById("whs-subscribe-root");
-root.innerHTML = `
+if (!root) {
+  console.error("WHS widget: couldn't find #whs-subscribe-root on the page — check the embed snippet.");
+} else {
+  root.innerHTML = `
   <div style="max-width:420px;font-family:Inter,Arial,sans-serif;background:#F7F1E6;border:1px solid #E4DDCC;border-radius:12px;padding:20px 22px;">
     <h3 style="margin:0 0 6px;font-size:16px;color:#1B2A41;">Want ${PRODUCT_NAME} delivered automatically?</h3>
     <p style="margin:0 0 14px;font-size:13px;color:#5B6472;line-height:1.5;">Tell us your reorder schedule and we'll confirm the details and get it set up.</p>
@@ -69,49 +74,50 @@ root.innerHTML = `
       <p style="margin:4px 0 0;font-size:13px;color:#5B6472;line-height:1.5;">This sets up your reorder schedule going forward, but doesn't place today's order. Please add this item to your cart and complete checkout as usual to place it now.</p>
     </div>
   </div>
-`;
+  `;
 
-document.getElementById("whs-acc-submit").addEventListener("click", async () => {
-  const msg = document.getElementById("whs-acc-msg");
-  const name = document.getElementById("whs-acc-name").value.trim();
-  const email = document.getElementById("whs-acc-email").value.trim();
-  const address = document.getElementById("whs-acc-address").value.trim();
-  const qty = Number(document.getElementById("whs-acc-qty").value);
-  const cadenceWeeks = Number(document.getElementById("whs-acc-cadence").value);
+  document.getElementById("whs-acc-submit").addEventListener("click", async () => {
+    const msg = document.getElementById("whs-acc-msg");
+    const name = document.getElementById("whs-acc-name").value.trim();
+    const email = document.getElementById("whs-acc-email").value.trim();
+    const address = document.getElementById("whs-acc-address").value.trim();
+    const qty = Number(document.getElementById("whs-acc-qty").value);
+    const cadenceWeeks = Number(document.getElementById("whs-acc-cadence").value);
 
-  if (!name || !email) {
-    msg.textContent = "Please enter your property name and email.";
-    msg.style.color = "#A13D2D";
-    msg.style.display = "block";
-    return;
-  }
+    if (!name || !email) {
+      msg.textContent = "Please enter your property name and email.";
+      msg.style.color = "#A13D2D";
+      msg.style.display = "block";
+      return;
+    }
 
-  const btn = document.getElementById("whs-acc-submit");
-  btn.disabled = true;
-  btn.textContent = "Sending\u2026";
+    const btn = document.getElementById("whs-acc-submit");
+    btn.disabled = true;
+    btn.textContent = "Sending\u2026";
 
-  try {
-    await addDoc(collection(db, "subscriptionRequests"), {
-      accountName: name,
-      contactEmail: email,
-      shippingAddress: address || null,
-      productName: PRODUCT_NAME,
-      qty,
-      cadenceWeeks,
-      requestedAt: new Date().toISOString().slice(0, 10),
-      status: "pending",
-      notifiedInDigest: false,
-    });
-    msg.textContent = "Thanks — we'll confirm the details and set this up shortly.";
-    msg.style.color = "#2F6F62";
-    msg.style.display = "block";
-    btn.textContent = "Request sent";
-    document.getElementById("whs-acc-next-steps").style.display = "block";
-  } catch (err) {
-    msg.textContent = "Something went wrong — please email us directly instead.";
-    msg.style.color = "#A13D2D";
-    msg.style.display = "block";
-    btn.disabled = false;
-    btn.textContent = "Request auto-reorder";
-  }
-});
+    try {
+      await addDoc(collection(db, "subscriptionRequests"), {
+        accountName: name,
+        contactEmail: email,
+        shippingAddress: address || null,
+        productName: PRODUCT_NAME,
+        qty,
+        cadenceWeeks,
+        requestedAt: new Date().toISOString().slice(0, 10),
+        status: "pending",
+        notifiedInDigest: false,
+      });
+      msg.textContent = "Thanks — we'll confirm the details and set this up shortly.";
+      msg.style.color = "#2F6F62";
+      msg.style.display = "block";
+      btn.textContent = "Request sent";
+      document.getElementById("whs-acc-next-steps").style.display = "block";
+    } catch (err) {
+      msg.textContent = "Something went wrong — please email us directly instead.";
+      msg.style.color = "#A13D2D";
+      msg.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Request auto-reorder";
+    }
+  });
+}
