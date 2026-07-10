@@ -226,6 +226,7 @@ function renderRequests() {
         <div>
           <div class="row-name">${r.accountName}</div>
           <div class="row-sub">${r.productName} &middot; ${r.qty} units every ${r.cadenceWeeks}w &middot; ${r.contactEmail}</div>
+          ${r.shippingAddress ? `<div class="row-sub" style="margin-top:2px;">Ships to: ${r.shippingAddress}</div>` : `<div class="row-sub" style="margin-top:2px;color:var(--brass);">No address given — use address on file, or follow up</div>`}
         </div>
         <span class="status-pill" style="color:var(--brass);">New request</span>
       </div>
