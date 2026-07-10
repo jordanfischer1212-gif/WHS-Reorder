@@ -103,6 +103,49 @@ async function main() {
   }
 
   console.log(`Done. Sent ${sentCount} reminder(s), skipped ${skippedNoEmail} for missing email.`);
+
+  // --- New auto-reorder requests from the product-page widget ---
+  const requestsSnap = await db
+    .collection("subscriptionRequests")
+    .where("status", "==", "pending")
+    .where("notifiedInDigest", "==", false)
+    .get();
+
+  if (!requestsSnap.empty) {
+    const rows = requestsSnap.docs
+      .map((d) => d.data())
+      .map(
+        (r) =>
+          `<li><strong>${r.accountName}</strong> (${r.contactEmail}) — ${r.productName}, ` +
+          `${r.qty} units every ${r.cadenceWeeks} weeks. Requested ${r.requestedAt}. ` +
+          `${r.shippingAddress ? `Ships to: ${r.shippingAddress}` : "No address given — use address on file, or follow up."}</li>`
+      )
+      .join("");
+
+    try {
+      await resend.emails.send({
+        from: "WHS Reorder Tracker <onboarding@resend.dev>",
+        to: CUSTOMER_SERVICE_EMAIL,
+        subject: `${requestsSnap.size} new auto-reorder request(s) waiting`,
+        html:
+          `<p>The following auto-reorder requests came in from product pages and are waiting for review:</p>` +
+          `<ul>${rows}</ul>` +
+          `<p>Review and add them in the tracker: they'll show under "Subscription requests from customers".</p>`,
+        text: requestsSnap.docs
+          .map((d) => d.data())
+          .map((r) => `${r.accountName} (${r.contactEmail}) — ${r.productName}, ${r.qty} units every ${r.cadenceWeeks} weeks`)
+          .join("\n"),
+      });
+      const batch = db.batch();
+      requestsSnap.docs.forEach((d) => batch.update(d.ref, { notifiedInDigest: true }));
+      await batch.commit();
+      console.log(`Sent digest for ${requestsSnap.size} new subscription request(s).`);
+    } catch (err) {
+      console.error("Failed to send subscription request digest:", err.message);
+    }
+  } else {
+    console.log("No new subscription requests to notify about.");
+  }
 }
 
 main().catch((err) => {
