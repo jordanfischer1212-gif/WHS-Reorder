@@ -117,6 +117,9 @@
     <p class="error-msg" id="f-error"></p>
   </div>
 
+  <p class="section-label" id="requests-label" style="display:none;">Subscription requests from customers</p>
+  <div id="requests-list"></div>
+
   <p class="section-label">Tracked orders</p>
   <div id="tracked-list"><p class="empty">Loading&hellip;</p></div>
 
@@ -127,7 +130,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, addDoc, doc, updateDoc, deleteDoc,
-  onSnapshot, getDocs, query, orderBy, arrayUnion
+  onSnapshot, getDocs, query, where, orderBy, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -152,6 +155,7 @@ const PRODUCTS_SEED = [
 let products = [];
 let accounts = [];
 let tracked = [];
+let subscriptionRequests = [];
 
 function today() { return new Date().toISOString().slice(0, 10); }
 function addDays(dateStr, days) {
@@ -202,6 +206,87 @@ function populateCadenceSelect() {
   const p = products.find(p => p.id === productId);
   if (!p) return;
   document.getElementById("f-cadence").innerHTML = p.cadences.map(c => `<option value="${c}">${c} weeks</option>`).join("");
+}
+
+function renderRequests() {
+  const label = document.getElementById("requests-label");
+  const list = document.getElementById("requests-list");
+  const pending = subscriptionRequests.filter(r => r.status === "pending");
+
+  if (pending.length === 0) {
+    label.style.display = "none";
+    list.innerHTML = "";
+    return;
+  }
+  label.style.display = "block";
+
+  list.innerHTML = pending.map(r => `
+    <div class="row-card" style="border-color:var(--brass);">
+      <div class="row-top">
+        <div>
+          <div class="row-name">${r.accountName}</div>
+          <div class="row-sub">${r.productName} &middot; ${r.qty} units every ${r.cadenceWeeks}w &middot; ${r.contactEmail}</div>
+        </div>
+        <span class="status-pill" style="color:var(--brass);">New request</span>
+      </div>
+      <div class="row-bottom">
+        <span class="mono row-sub">Requested ${r.requestedAt}</span>
+        <div style="display:flex;gap:6px;">
+          <button class="mark-btn" data-use-request="${r.id}" style="border-color:var(--teal);color:var(--teal);">Use this request</button>
+          <button class="mark-btn" data-dismiss-request="${r.id}" style="border-color:var(--slate);color:var(--slate);">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  list.querySelectorAll("[data-use-request]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const r = subscriptionRequests.find(r => r.id === btn.dataset.useRequest);
+      if (!r) return;
+
+      // Pre-fill the "Log a new order" form from this request.
+      const existingAccount = accounts.find(a => a.name.toLowerCase() === r.accountName.toLowerCase());
+      const accountSelect = document.getElementById("f-account");
+      if (existingAccount) {
+        accountSelect.value = existingAccount.id;
+      } else {
+        accountSelect.value = "__new__";
+        document.getElementById("f-new-account").value = r.accountName;
+        document.getElementById("f-new-account-email").value = r.contactEmail;
+      }
+      syncNewAccountVisibility();
+
+      const matchingProduct = products.find(p => p.name.toLowerCase() === r.productName.toLowerCase());
+      if (matchingProduct) {
+        document.getElementById("f-product").value = matchingProduct.id;
+        populateCadenceSelect();
+      }
+      document.getElementById("f-qty").value = r.qty;
+      const cadenceSelect = document.getElementById("f-cadence");
+      if ([...cadenceSelect.options].some(o => o.value === String(r.cadenceWeeks))) {
+        cadenceSelect.value = r.cadenceWeeks;
+      }
+
+      try {
+        await withTimeout(updateDoc(doc(db, "subscriptionRequests", r.id), { status: "handled" }));
+      } catch (err) {
+        console.error("Couldn't mark request handled:", err);
+      }
+
+      document.querySelector(".form-card").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  list.querySelectorAll("[data-dismiss-request]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Dismiss this request without adding it to the tracker?")) return;
+      try {
+        await withTimeout(updateDoc(doc(db, "subscriptionRequests", btn.dataset.dismissRequest), { status: "handled" }));
+      } catch (err) {
+        alert("Couldn't dismiss: " + err.message);
+      }
+    });
+  });
 }
 
 function renderList() {
@@ -431,6 +516,15 @@ async function init() {
     tracked = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderList();
   }, "trackedOrders");
+
+  subscribeWithRetry(
+    query(collection(db, "subscriptionRequests"), where("status", "==", "pending")),
+    (snap) => {
+      subscriptionRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderRequests();
+    },
+    "subscriptionRequests"
+  );
 }
 
 init();
