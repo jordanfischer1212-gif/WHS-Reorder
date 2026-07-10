@@ -54,7 +54,9 @@
       </div>
       <div class="field" id="new-account-wrap" style="display:none;">
         <label>New account name</label>
-        <input id="f-new-account" placeholder="e.g. Riverside Suites" />
+        <input id="f-new-account" placeholder="e.g. Riverside Suites" style="margin-bottom:8px;" />
+        <label>Reminder email for this account</label>
+        <input id="f-new-account-email" type="email" placeholder="manager@riversidesuites.com" />
       </div>
       <div class="field">
         <label>Product</label>
@@ -263,6 +265,7 @@ document.getElementById("f-submit").addEventListener("click", async () => {
   try {
     if (accountId === "__new__") {
       const name = document.getElementById("f-new-account").value.trim();
+      const email = document.getElementById("f-new-account-email").value.trim();
       if (!name) {
         errorEl.textContent = "Enter a name for the new account.";
         errorEl.style.display = "block";
@@ -270,10 +273,11 @@ document.getElementById("f-submit").addEventListener("click", async () => {
         submitBtn.textContent = "Add to tracker";
         return;
       }
-      const newDoc = await withTimeout(addDoc(collection(db, "accounts"), { name }));
+      const newDoc = await withTimeout(addDoc(collection(db, "accounts"), { name, email: email || null }));
       accountId = newDoc.id;
       accountName = name;
       document.getElementById("f-new-account").value = "";
+      document.getElementById("f-new-account-email").value = "";
       document.getElementById("new-account-wrap").style.display = "none";
     } else {
       accountName = accounts.find(a => a.id === accountId)?.name;
