@@ -56,6 +56,7 @@ async function main() {
     const account = accountsById[order.accountId];
     const daysUntilDue = daysBetween(today(), order.nextDue);
 
+    if (order.status === "paused" || order.status === "cancelled") continue;
     if (daysUntilDue > REMINDER_DAYS_BEFORE || daysUntilDue < 0) continue;
 
     // Don't send twice for the same due date if the job runs more than once,
