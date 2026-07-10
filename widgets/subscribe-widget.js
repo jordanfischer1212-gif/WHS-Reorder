@@ -1,1 +1,117 @@
 
+// WHS Auto-Reorder Request Widget — hosted version
+// ---------------------------------------------------
+// This file is loaded via a <script src="..."> tag from the product
+// page, rather than pasted inline, in case Aether strips inline
+// script content but allows an external reference.
+//
+// The product name comes from the script tag's own URL, e.g.:
+//   <script type="module" src=".../subscribe-widget.js?product=Key%20cards"></script>
+// It's read from the URL itself (not a custom HTML attribute), since
+// the URL is part of what makes the tag actually load — a sanitizer
+// stripping that would break the embed entirely, so it's the most
+// durable place to carry this one piece of per-product info.
+
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAEPXkT4F1u6lq_d_0EYj09dNBiFst-TK0",
+  authDomain: "whs-auto-reorder.firebaseapp.com",
+  projectId: "whs-auto-reorder",
+  storageBucket: "whs-auto-reorder.firebasestorage.app",
+  messagingSenderId: "21713259842",
+  appId: "1:21713259842:web:1cf8bfd37cef3e18b4ccdb",
+};
+
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// Pull the product name out of this very script tag's own src URL.
+const scriptUrl = new URL(document.currentScript.src);
+const PRODUCT_NAME = scriptUrl.searchParams.get("product") || "Unknown product";
+
+// Build the widget markup with JS rather than relying on separate
+// static HTML surviving in the page — keeps everything pasted into
+// Aether down to just the empty target div plus this one script tag.
+const root = document.getElementById("whs-subscribe-root");
+root.innerHTML = `
+  <div style="max-width:420px;font-family:Inter,Arial,sans-serif;background:#F7F1E6;border:1px solid #E4DDCC;border-radius:12px;padding:20px 22px;">
+    <h3 style="margin:0 0 6px;font-size:16px;color:#1B2A41;">Want ${PRODUCT_NAME} delivered automatically?</h3>
+    <p style="margin:0 0 14px;font-size:13px;color:#5B6472;line-height:1.5;">Tell us your reorder schedule and we'll confirm the details and get it set up.</p>
+
+    <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Property / account name</label>
+    <input id="whs-acc-name" placeholder="e.g. Riverside Suites" style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:10px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;" />
+
+    <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Your email</label>
+    <input id="whs-acc-email" type="email" placeholder="you@yourhotel.com" style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:10px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;" />
+
+    <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Shipping address</label>
+    <textarea id="whs-acc-address" rows="2" placeholder="Street, city, state, zip" style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:10px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+    <p style="margin:-6px 0 10px;font-size:11.5px;color:#5B6472;">Already an account with us? You can leave this blank — we'll use the address on file.</p>
+
+    <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Quantity per order</label>
+    <input id="whs-acc-qty" type="number" min="1" value="300" style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:10px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;" />
+
+    <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Reorder every</label>
+    <select id="whs-acc-cadence" style="width:100%;box-sizing:border-box;padding:8px 10px;margin-bottom:14px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;">
+      <option value="2">2 weeks</option>
+      <option value="4" selected>4 weeks</option>
+      <option value="6">6 weeks</option>
+      <option value="8">8 weeks</option>
+      <option value="12">12 weeks</option>
+    </select>
+
+    <button id="whs-acc-submit" style="width:100%;padding:10px;border:none;border-radius:8px;background:#C9A227;color:#1B2A41;font-weight:600;font-size:14px;cursor:pointer;">Request auto-reorder</button>
+    <p id="whs-acc-msg" style="margin:10px 0 0;font-size:13px;display:none;"></p>
+    <div id="whs-acc-next-steps" style="display:none;margin-top:12px;padding:12px 14px;background:#FFF;border:1px solid #C9A227;border-radius:8px;">
+      <p style="margin:0;font-size:13px;color:#1B2A41;font-weight:600;">One more step</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#5B6472;line-height:1.5;">This sets up your reorder schedule going forward, but doesn't place today's order. Please add this item to your cart and complete checkout as usual to place it now.</p>
+    </div>
+  </div>
+`;
+
+document.getElementById("whs-acc-submit").addEventListener("click", async () => {
+  const msg = document.getElementById("whs-acc-msg");
+  const name = document.getElementById("whs-acc-name").value.trim();
+  const email = document.getElementById("whs-acc-email").value.trim();
+  const address = document.getElementById("whs-acc-address").value.trim();
+  const qty = Number(document.getElementById("whs-acc-qty").value);
+  const cadenceWeeks = Number(document.getElementById("whs-acc-cadence").value);
+
+  if (!name || !email) {
+    msg.textContent = "Please enter your property name and email.";
+    msg.style.color = "#A13D2D";
+    msg.style.display = "block";
+    return;
+  }
+
+  const btn = document.getElementById("whs-acc-submit");
+  btn.disabled = true;
+  btn.textContent = "Sending\u2026";
+
+  try {
+    await addDoc(collection(db, "subscriptionRequests"), {
+      accountName: name,
+      contactEmail: email,
+      shippingAddress: address || null,
+      productName: PRODUCT_NAME,
+      qty,
+      cadenceWeeks,
+      requestedAt: new Date().toISOString().slice(0, 10),
+      status: "pending",
+      notifiedInDigest: false,
+    });
+    msg.textContent = "Thanks — we'll confirm the details and set this up shortly.";
+    msg.style.color = "#2F6F62";
+    msg.style.display = "block";
+    btn.textContent = "Request sent";
+    document.getElementById("whs-acc-next-steps").style.display = "block";
+  } catch (err) {
+    msg.textContent = "Something went wrong — please email us directly instead.";
+    msg.style.color = "#A13D2D";
+    msg.style.display = "block";
+    btn.disabled = false;
+    btn.textContent = "Request auto-reorder";
+  }
+});
