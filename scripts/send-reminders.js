@@ -1,6 +1,8 @@
 // Runs once a day via GitHub Actions (see .github/workflows/reminder-check.yml).
-// Checks every tracked order in Firestore; if it's due in exactly 3 days,
-// emails the account's reminder address via Resend.
+// Checks every tracked order in Firestore; if it's due within 3 days,
+// emails the account's reminder address via Resend, with pause/cancel
+// links that draft a pre-filled email to customer service — nothing
+// pauses or cancels automatically, a human still has to act on it.
 //
 // Required environment variables (set as GitHub Actions secrets):
 //   FIREBASE_SERVICE_ACCOUNT   the full JSON key for a Firebase service account
@@ -10,12 +12,25 @@ const admin = require("firebase-admin");
 const { Resend } = require("resend");
 
 const REMINDER_DAYS_BEFORE = 3;
+const CUSTOMER_SERVICE_EMAIL = "Jordan@corporateimagegroup.com";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
 function daysBetween(a, b) {
   return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+function mailtoLink(action, order, account) {
+  const subject = `${action} request: ${account.name} — ${order.productName}`;
+  const body =
+    `Please ${action.toLowerCase()} the following order:\n\n` +
+    `Account: ${account.name}\n` +
+    `Product: ${order.productName}\n` +
+    `Quantity: ${order.qty} ${order.unit}\n` +
+    `Current due date: ${order.nextDue}\n\n` +
+    `Requested via reminder email by the account contact.`;
+  return `mailto:${CUSTOMER_SERVICE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
 async function main() {
@@ -53,6 +68,9 @@ async function main() {
       continue;
     }
 
+    const pauseLink = mailtoLink("Pause", order, account);
+    const cancelLink = mailtoLink("Cancel", order, account);
+
     try {
       await resend.emails.send({
         from: "WHS Reorder Tracker <onboarding@resend.dev>",
@@ -61,7 +79,19 @@ async function main() {
         text:
           `This is a reminder that ${order.accountName}'s ${order.productName} order ` +
           `(${order.qty} ${order.unit}) is due to go out on ${order.nextDue}.\n\n` +
+          `Need to pause or cancel this order? Email ${CUSTOMER_SERVICE_EMAIL} and let us know.\n\n` +
           `— WHS Reorder Tracker`,
+        html:
+          `<p>This is a reminder that <strong>${order.accountName}</strong>'s <strong>${order.productName}</strong> order ` +
+          `(${order.qty} ${order.unit}) is due to go out on <strong>${order.nextDue}</strong>.</p>` +
+          `<p>Need to make a change?</p>` +
+          `<p>` +
+          `<a href="${pauseLink}" style="color:#1B2A41;font-weight:600;">Pause this order</a>` +
+          `&nbsp;&nbsp;|&nbsp;&nbsp;` +
+          `<a href="${cancelLink}" style="color:#A13D2D;font-weight:600;">Cancel this order</a>` +
+          `</p>` +
+          `<p style="color:#5B6472;font-size:13px;">Clicking either link opens a pre-filled email to our customer service team — nothing is paused or cancelled automatically.</p>` +
+          `<p>— WHS Reorder Tracker</p>`,
       });
       await orderDoc.ref.update({ reminderSentFor: order.nextDue });
       console.log(`Sent reminder to ${account.email} for ${account.name} / ${order.productName}`);
