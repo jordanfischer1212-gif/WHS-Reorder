@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <!--
   WHS Auto-Reorder Request Widget — iframe version
@@ -14,13 +15,21 @@
 
   EMBED THIS in the Aether product description with:
     <iframe
-      src="https://jordanfischer1212-gif.github.io/WHS-Reorder/widgets/subscribe-widget.html?product=Key%20cards"
-      style="width:100%;max-width:420px;height:520px;border:none;"
+      src="https://jordanfischer1212-gif.github.io/WHS-Reorder/widgets/subscribe-widget.html?product=Key%20cards&perRoom=4.5"
+      style="width:100%;max-width:420px;height:600px;border:none;"
       title="Auto-reorder request"
     ></iframe>
 
-  Change only the "product=" value in that src URL per product page —
-  everything else about the embed snippet stays the same.
+  Change per product:
+    - product=    the product name shown in the widget
+    - perRoom=    roughly how many units a typical room uses of this
+                  product — used to suggest a quantity as the customer
+                  adjusts the room-count slider (e.g. key cards might
+                  be 4.5 per room, notepads more like 1.4). If left
+                  out, it defaults to 1 per room.
+
+  Everything else about the embed snippet stays the same across
+  every product.
 -->
 <html lang="en">
 <head>
@@ -48,8 +57,15 @@
   <textarea id="whs-acc-address" rows="2" placeholder="Street, city, state, zip" style="width:100%;padding:8px 10px;margin-bottom:10px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
   <p style="margin:-6px 0 10px;font-size:11.5px;color:#5B6472;">Already an account with us? Leave this blank — we'll use the address on file.</p>
 
+  <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Property size</label>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <input id="whs-acc-rooms" type="range" min="20" max="400" step="10" value="100" style="flex:1;accent-color:#C9A227;" />
+    <span id="whs-acc-rooms-out" style="font-size:13px;color:#1B2A41;min-width:70px;font-family:monospace;">100 rooms</span>
+  </div>
+
   <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Quantity per order</label>
-  <input id="whs-acc-qty" type="number" min="1" value="300" style="width:100%;padding:8px 10px;margin-bottom:10px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;" />
+  <input id="whs-acc-qty" type="number" min="1" value="300" style="width:100%;padding:8px 10px;margin-bottom:4px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;" />
+  <p style="margin:0 0 10px;font-size:11.5px;color:#5B6472;">Suggested based on your property size — feel free to adjust.</p>
 
   <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Reorder every</label>
   <select id="whs-acc-cadence" style="width:100%;padding:8px 10px;margin-bottom:14px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;">
@@ -86,8 +102,22 @@ const db = getFirestore(app);
 
 // This page loads as its own document inside the iframe, so it can
 // just read its own URL directly — no special tricks needed here.
-const PRODUCT_NAME = new URLSearchParams(window.location.search).get("product") || "this product";
+const params = new URLSearchParams(window.location.search);
+const PRODUCT_NAME = params.get("product") || "this product";
+const PER_ROOM = parseFloat(params.get("perRoom")) || 1;
 document.getElementById("whs-heading").textContent = `Want ${PRODUCT_NAME} delivered automatically?`;
+
+const roomsSlider = document.getElementById("whs-acc-rooms");
+const roomsOut = document.getElementById("whs-acc-rooms-out");
+const qtyInput = document.getElementById("whs-acc-qty");
+
+function updateQtyFromRooms() {
+  const rooms = Number(roomsSlider.value);
+  roomsOut.textContent = `${rooms} rooms`;
+  qtyInput.value = Math.round(PER_ROOM * rooms);
+}
+roomsSlider.addEventListener("input", updateQtyFromRooms);
+updateQtyFromRooms(); // set the initial suggested quantity on load
 
 document.getElementById("whs-acc-submit").addEventListener("click", async () => {
   const msg = document.getElementById("whs-acc-msg");
