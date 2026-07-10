@@ -168,15 +168,17 @@ function populateCadenceSelect() {
 
 function renderList() {
   const list = document.getElementById("tracked-list");
-  if (tracked.length === 0) {
+  const visible = tracked.filter(t => t.status !== "cancelled");
+  if (visible.length === 0) {
     list.innerHTML = `<p class="empty">Nothing tracked yet — add your first order above.</p>`;
     return;
   }
-  const sorted = [...tracked].sort((a, b) => new Date(a.nextDue) - new Date(b.nextDue));
+  const sorted = [...visible].sort((a, b) => new Date(a.nextDue) - new Date(b.nextDue));
   list.innerHTML = sorted.map(t => {
-    const st = statusFor(t.nextDue);
+    const isPaused = t.status === "paused";
+    const st = isPaused ? { text: "Paused", color: "var(--slate)" } : statusFor(t.nextDue);
     return `
-      <div class="row-card">
+      <div class="row-card" style="${isPaused ? "opacity:0.6;" : ""}">
         <div class="row-top">
           <div>
             <div class="row-name">${t.accountName}</div>
@@ -186,7 +188,14 @@ function renderList() {
         </div>
         <div class="row-bottom">
           <span class="mono row-sub">Next due ${t.nextDue}</span>
-          <button class="mark-btn" data-mark-sent="${t.id}">Mark sent today</button>
+          <div style="display:flex;gap:6px;">
+            ${isPaused
+              ? `<button class="mark-btn" data-resume="${t.id}">Resume</button>`
+              : `<button class="mark-btn" data-mark-sent="${t.id}">Mark sent today</button>
+                 <button class="mark-btn" data-pause="${t.id}" style="border-color:var(--brass);color:var(--brass);">Pause</button>`
+            }
+            <button class="mark-btn" data-cancel="${t.id}" style="border-color:var(--rust);color:var(--rust);">Cancel</button>
+          </div>
         </div>
       </div>`;
   }).join("");
@@ -211,6 +220,53 @@ function renderList() {
         alert("Couldn't save: " + err.message);
         btn.disabled = false;
         btn.textContent = "Mark sent today";
+      }
+    });
+  });
+
+  list.querySelectorAll("[data-pause]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Saving\u2026";
+      try {
+        await withTimeout(updateDoc(doc(db, "trackedOrders", btn.dataset.pause), { status: "paused" }));
+      } catch (err) {
+        alert("Couldn't pause: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "Pause";
+      }
+    });
+  });
+
+  list.querySelectorAll("[data-resume]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Saving\u2026";
+      try {
+        await withTimeout(updateDoc(doc(db, "trackedOrders", btn.dataset.resume), { status: "active" }));
+      } catch (err) {
+        alert("Couldn't resume: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "Resume";
+      }
+    });
+  });
+
+  list.querySelectorAll("[data-cancel]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const t = tracked.find(t => t.id === btn.dataset.cancel);
+      const label = t ? `${t.accountName} — ${t.productName}` : "this order";
+      if (!confirm(`Cancel ${label}? It will stop appearing in the tracker. This can be undone directly in Firestore if needed, but not from this page.`)) {
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = "Saving\u2026";
+      try {
+        await withTimeout(updateDoc(doc(db, "trackedOrders", btn.dataset.cancel), { status: "cancelled" }));
+      } catch (err) {
+        alert("Couldn't cancel: " + err.message);
+        btn.disabled = false;
+        btn.textContent = "Cancel";
       }
     });
   });
@@ -290,6 +346,7 @@ document.getElementById("f-submit").addEventListener("click", async () => {
       lastSent,
       nextDue: addDays(lastSent, cadenceWeeks * 7),
       history: [],
+      status: "active",
     }));
   } catch (err) {
     errorEl.textContent = "Couldn't save: " + err.message;
