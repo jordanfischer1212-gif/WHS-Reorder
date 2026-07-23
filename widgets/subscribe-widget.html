@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <!--
   WHS Auto-Reorder Request Widget — iframe version
@@ -16,7 +15,7 @@
   EMBED THIS in the Aether product description with:
     <iframe
       src="https://jordanfischer1212-gif.github.io/WHS-Reorder/widgets/subscribe-widget.html?product=Key%20cards&perRoom=4.5"
-      style="width:100%;max-width:420px;height:600px;border:none;"
+      style="width:100% !important;max-width:380px !important;height:600px !important;border:none !important;display:block;"
       title="Auto-reorder request"
     ></iframe>
 
@@ -27,6 +26,14 @@
                   adjusts the room-count slider (e.g. key cards might
                   be 4.5 per room, notepads more like 1.4). If left
                   out, it defaults to 1 per room.
+
+  The !important rules in the style attribute above are there because
+  Aether's own page CSS can otherwise force the iframe to stretch full
+  width. If it's still oversized even with those, wrap it in a
+  container div with a hard pixel width instead:
+    <div style="width:380px !important;max-width:100%;">
+      <iframe src="..." style="width:100% !important;height:600px !important;border:none !important;"></iframe>
+    </div>
 
   Everything else about the embed snippet stays the same across
   every product.
@@ -43,7 +50,7 @@
 </head>
 <body>
 
-<div style="background:#F7F1E6;border:1px solid #E4DDCC;border-radius:12px;padding:20px 22px;">
+<div style="max-width:380px;margin:0 auto;background:#F7F1E6;border:1px solid #E4DDCC;border-radius:12px;padding:20px 22px;">
   <h3 id="whs-heading" style="margin:0 0 6px;font-size:16px;color:#1B2A41;">Want this delivered automatically?</h3>
   <p style="margin:0 0 14px;font-size:13px;color:#5B6472;line-height:1.5;">Tell us your reorder schedule and we'll confirm the details and get it set up.</p>
 
