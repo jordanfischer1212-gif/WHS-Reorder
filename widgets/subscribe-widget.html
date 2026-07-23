@@ -14,8 +14,8 @@
 
   EMBED THIS in the Aether product description with:
     <iframe
-      src="https://jordanfischer1212-gif.github.io/WHS-Reorder/widgets/subscribe-widget.html?product=Key%20cards&perRoom=4.5"
-      style="width:100% !important;max-width:380px !important;height:600px !important;border:none !important;display:block;"
+      src="https://jordanfischer1212-gif.github.io/WHS-Reorder/widgets/subscribe-widget.html?product=Key%20cards&perRoom=4.5&packSize=500"
+      style="width:100%;height:600px;border:none;"
       title="Auto-reorder request"
     ></iframe>
 
@@ -26,14 +26,10 @@
                   adjusts the room-count slider (e.g. key cards might
                   be 4.5 per room, notepads more like 1.4). If left
                   out, it defaults to 1 per room.
-
-  The !important rules in the style attribute above are there because
-  Aether's own page CSS can otherwise force the iframe to stretch full
-  width. If it's still oversized even with those, wrap it in a
-  container div with a hard pixel width instead:
-    <div style="width:380px !important;max-width:100%;">
-      <iframe src="..." style="width:100% !important;height:600px !important;border:none !important;"></iframe>
-    </div>
+    - packSize=   how many units come in one pack/case of this
+                  product (e.g. 500). The suggested quantity rounds
+                  to the nearest whole pack instead of an arbitrary
+                  number. If left out, it defaults to 1 (no rounding).
 
   Everything else about the embed snippet stays the same across
   every product.
@@ -72,7 +68,7 @@
 
   <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Quantity per order</label>
   <input id="whs-acc-qty" type="number" min="1" value="300" style="width:100%;padding:8px 10px;margin-bottom:4px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;" />
-  <p style="margin:0 0 10px;font-size:11.5px;color:#5B6472;">Suggested based on your property size — feel free to adjust.</p>
+  <p style="margin:0 0 10px;font-size:11.5px;color:#5B6472;">Suggested based on your property size, rounded to the nearest full pack — feel free to adjust.</p>
 
   <label style="display:block;font-size:12px;color:#5B6472;margin-bottom:4px;">Reorder every</label>
   <select id="whs-acc-cadence" style="width:100%;padding:8px 10px;margin-bottom:14px;border:1px solid #E4DDCC;border-radius:7px;font-size:14px;">
@@ -112,16 +108,21 @@ const db = getFirestore(app);
 const params = new URLSearchParams(window.location.search);
 const PRODUCT_NAME = params.get("product") || "this product";
 const PER_ROOM = parseFloat(params.get("perRoom")) || 1;
+const PACK_SIZE = parseFloat(params.get("packSize")) || 1;
 document.getElementById("whs-heading").textContent = `Want ${PRODUCT_NAME} delivered automatically?`;
 
 const roomsSlider = document.getElementById("whs-acc-rooms");
 const roomsOut = document.getElementById("whs-acc-rooms-out");
 const qtyInput = document.getElementById("whs-acc-qty");
+qtyInput.step = PACK_SIZE;
 
 function updateQtyFromRooms() {
   const rooms = Number(roomsSlider.value);
   roomsOut.textContent = `${rooms} rooms`;
-  qtyInput.value = Math.round(PER_ROOM * rooms);
+  const rawQty = PER_ROOM * rooms;
+  // Round to the nearest whole pack, minimum one full pack.
+  const packs = Math.max(1, Math.round(rawQty / PACK_SIZE));
+  qtyInput.value = packs * PACK_SIZE;
 }
 roomsSlider.addEventListener("input", updateQtyFromRooms);
 updateQtyFromRooms(); // set the initial suggested quantity on load
