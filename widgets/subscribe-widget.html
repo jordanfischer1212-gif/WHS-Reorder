@@ -1,34 +1,5 @@
 <!DOCTYPE html>
-<!--
-  WHS Auto-Reorder Request Widget — iframe version
-  ---------------------------------------------------
-  This is meant to be embedded via an <iframe>, not pasted as raw
-  HTML/script directly into Aether's product description. That's
-  because Aether's storefront is a React app, and React's rendering
-  approach (dangerouslySetInnerHTML) never executes <script> tags
-  inserted that way — a standard browser behavior, not a bug, and not
-  something fixable from the embed side. An iframe sidesteps this
-  entirely, since it's its own separate page with its own normal
-  script execution — nothing about it depends on how the parent page
-  was built.
 
-  EMBED THIS in the Aether product description with:
-    <iframe
-      src="https://jordanfischer1212-gif.github.io/WHS-Reorder/widgets/subscribe-widget.html?product=Key%20cards&packSize=500"
-      style="width:100%;height:600px;border:none;"
-      title="Auto-reorder request"
-    ></iframe>
-
-  Change per product:
-    - product=    the product name shown in the widget
-    - packSize=   how many units come in one pack/case of this
-                  product (e.g. 500). Sets the default quantity to
-                  one full pack, and the +/- step to whole packs.
-                  If left out, defaults to a plain 300 with a step of 1.
-
-  Everything else about the embed snippet stays the same across
-  every product.
--->
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
