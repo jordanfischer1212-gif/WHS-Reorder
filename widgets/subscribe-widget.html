@@ -40,29 +40,44 @@
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: Inter, Arial, sans-serif; background: transparent; }
+
+  .whs-card { padding: 20px 22px; }
+  .whs-label { font-size: 12px; margin-bottom: 4px; }
+  .whs-input { padding: 8px 10px; font-size: 14px; margin-bottom: 10px; }
+
+  /* On narrow screens, text wraps onto more lines and needs more
+     vertical room — tighten spacing here so the same fixed iframe
+     height still comfortably fits without a scrollbar. */
+  @media (max-width: 400px) {
+    .whs-card { padding: 14px 16px; }
+    .whs-label { font-size: 11px; margin-bottom: 2px; }
+    .whs-input { padding: 6px 8px; font-size: 13px; margin-bottom: 7px; }
+    h3#whs-heading { font-size: 14px !important; }
+    p { font-size: 12px !important; line-height: 1.35 !important; }
+  }
 </style>
 </head>
 <body>
 
-<div style="background:#FFFFFF;border:1px solid #D6E4F0;border-radius:12px;padding:20px 22px;">
+<div class="whs-card" style="background:#FFFFFF;border:1px solid #D6E4F0;border-radius:12px;">
   <h3 id="whs-heading" style="margin:0 0 6px;font-size:16px;color:#0070B8;">Want this delivered automatically?</h3>
   <p style="margin:0 0 14px;font-size:13px;color:#5B7A94;line-height:1.5;">Tell us your reorder schedule and we'll confirm the details and get it set up.</p>
 
-  <label style="display:block;font-size:12px;color:#5B7A94;margin-bottom:4px;">Property / account name</label>
-  <input id="whs-acc-name" placeholder="e.g. Riverside Suites" style="width:100%;padding:8px 10px;margin-bottom:10px;border:1px solid #D6E4F0;border-radius:7px;font-size:14px;" />
+  <label class="whs-label" style="display:block;color:#5B7A94;">Property / account name</label>
+  <input id="whs-acc-name" class="whs-input" placeholder="e.g. Riverside Suites" style="width:100%;border:1px solid #D6E4F0;border-radius:7px;" />
 
-  <label style="display:block;font-size:12px;color:#5B7A94;margin-bottom:4px;">Your email</label>
-  <input id="whs-acc-email" type="email" placeholder="you@yourhotel.com" style="width:100%;padding:8px 10px;margin-bottom:10px;border:1px solid #D6E4F0;border-radius:7px;font-size:14px;" />
+  <label class="whs-label" style="display:block;color:#5B7A94;">Your email</label>
+  <input id="whs-acc-email" type="email" class="whs-input" placeholder="you@yourhotel.com" style="width:100%;border:1px solid #D6E4F0;border-radius:7px;" />
 
-  <label style="display:block;font-size:12px;color:#5B7A94;margin-bottom:4px;">Shipping address</label>
-  <textarea id="whs-acc-address" rows="2" placeholder="Street, city, state, zip" style="width:100%;padding:8px 10px;margin-bottom:10px;border:1px solid #D6E4F0;border-radius:7px;font-size:14px;font-family:inherit;resize:vertical;"></textarea>
+  <label class="whs-label" style="display:block;color:#5B7A94;">Shipping address</label>
+  <textarea id="whs-acc-address" rows="2" class="whs-input" placeholder="Street, city, state, zip" style="width:100%;border:1px solid #D6E4F0;border-radius:7px;font-family:inherit;resize:vertical;"></textarea>
   <p style="margin:-6px 0 10px;font-size:11.5px;color:#5B7A94;">Already an account with us? Leave this blank — we'll use the address on file.</p>
 
-  <label style="display:block;font-size:12px;color:#5B7A94;margin-bottom:4px;">Quantity per order</label>
-  <input id="whs-acc-qty" type="number" min="1" value="300" style="width:100%;padding:8px 10px;margin-bottom:14px;border:1px solid #D6E4F0;border-radius:7px;font-size:14px;" />
+  <label class="whs-label" style="display:block;color:#5B7A94;">Quantity per order</label>
+  <input id="whs-acc-qty" type="number" min="1" value="300" class="whs-input" style="width:100%;border:1px solid #D6E4F0;border-radius:7px;" />
 
-  <label style="display:block;font-size:12px;color:#5B7A94;margin-bottom:4px;">Reorder every</label>
-  <select id="whs-acc-cadence" style="width:100%;padding:8px 10px;margin-bottom:14px;border:1px solid #D6E4F0;border-radius:7px;font-size:14px;">
+  <label class="whs-label" style="display:block;color:#5B7A94;">Reorder every</label>
+  <select id="whs-acc-cadence" class="whs-input" style="width:100%;border:1px solid #D6E4F0;border-radius:7px;">
     <option value="2">2 weeks</option>
     <option value="4" selected>4 weeks</option>
     <option value="6">6 weeks</option>
